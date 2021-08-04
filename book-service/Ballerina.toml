@@ -1,0 +1,7 @@
+[package]
+org = "lreimer"
+name = "hands_on_ballerina.book_service"
+version = "1.0.0"
+
+[build-options]
+observabilityIncluded = true
