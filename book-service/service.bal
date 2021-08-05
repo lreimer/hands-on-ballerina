@@ -14,22 +14,93 @@ service /api on new http:Listener(9090) {
     # + request - the inbound request
     # + return - the HTTP response
     resource function get books(http:Request request) returns http:Response {
-        io:println("GET list of books.");
-
+        io:println("GET list of books");
         http:Response response = new;
         response.statusCode = 200;
-        response.setJsonPayload(store.all());
+        response.setJsonPayload(store.all().toJson());
+        return response;
+
+    }
+
+    resource function post books(http:Request request) returns http:Response|http:ClientError {
+        io:println("POST new book");
+
+        json payload = check request.getJsonPayload();
+        json b = payload.cloneReadOnly();
+        string isbn = store.create(<Book>b);
+
+        http:Response response = new;
+        response.statusCode = 201;
+        response.setHeader("Location", "http://localhost:9090/api/books/" + isbn);
+
+        return response;
+    }
+
+    resource function get books/[string isbn13](http:Request request) returns http:Response {
+        io:println("GET book by ISBN13 " + isbn13);
+
+        http:Response response = new;
+
+        Book? book = store.get(isbn13);
+        if book == () {
+            io:println("Unknown book with ISBN13 " + isbn13);
+            response.statusCode = 404;
+        } else {
+            io:println("Found book with ISBN13 " + isbn13);
+            response.statusCode = 200;
+            response.setJsonPayload(book.toJson());
+        }
+
+        return response;
+    }
+
+    resource function delete books/[string isbn13](http:Request request) returns http:Response {
+        io:println("DELETE book by ISBN13 " + isbn13);
+
+        http:Response response = new;
+
+        boolean deleted = store.delete(isbn13);
+        if deleted {
+            io:println("Deleted book with ISBN13 " + isbn13);
+            response.statusCode = 204;
+        } else {
+            io:println("Unknown book with ISBN13 " + isbn13);
+            response.statusCode = 404;
+        }
 
         return response;
     }
 }
 
+# Closed Book type record
+type Book record {|
+    # the ISBN-13
+    string isbn13;
+    # the book title
+    string title;
+|};
+
 class BookStore {
-    private map<json> booksMap = {
-        "1234567890": {"isbn": "1234567890", "title": "Hands-on Ballerina"}
+    private map<Book> booksMap = {
+        "1234567890": {isbn13: "1234567890", title: "Hands-on Ballerina"}
     };
-    
-    function all() returns json[] {
+
+    function all() returns Book[] {
         return self.booksMap.toArray();
+    }
+
+    function create(Book book) returns string {
+        string id = book.isbn13;
+        self.booksMap[id] = book;
+        return id;
+    }
+
+    function get(string isbn13) returns Book? {
+        return self.booksMap[isbn13];
+    }
+
+    function delete(string isbn13) returns boolean {
+        Book|error? result = self.booksMap.removeIfHasKey(isbn13);
+        return result is Book;
     }
 }
