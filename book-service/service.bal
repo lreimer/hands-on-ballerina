@@ -6,10 +6,22 @@ BookStore store = new;
 
 # A service representing a network-accessible API
 # bound to absolute path `/api` and port `9090`.
+@http:ServiceConfig {
+    compression: {
+        enable: http:COMPRESSION_ALWAYS,
+        contentTypes: ["application/json"]
+    },
+    cors: {
+        allowOrigins: ["http://localhost:9090"],
+        allowCredentials: false,
+        allowHeaders: [],
+        exposeHeaders: [],
+        maxAge: 3600
+    }
+}
 service /api on new http:Listener(9090) {
 
-    # A resource respresenting an invokable API method
-    # accessible at `/api/books`.
+    # API method to GET list of Books accessible at `/api/books`.
     #
     # + request - the inbound request
     # + return - the HTTP response
@@ -22,6 +34,10 @@ service /api on new http:Listener(9090) {
 
     }
 
+    # API method to POST a new Book accessible at `/api/books`.
+    #
+    # + request - the inbound request
+    # + return - the HTTP response or client error
     resource function post books(http:Request request) returns http:Response|http:ClientError {
         io:println("POST new book");
 
@@ -36,6 +52,10 @@ service /api on new http:Listener(9090) {
         return response;
     }
 
+    # API method to GET a single book by ISBN13 accessible at `/api/books/[isbn13]`.
+    #
+    # + request - the inbound request
+    # + return - the HTTP response
     resource function get books/[string isbn13](http:Request request) returns http:Response {
         io:println("GET book by ISBN13 " + isbn13);
 
@@ -54,6 +74,10 @@ service /api on new http:Listener(9090) {
         return response;
     }
 
+    # API method to DELETE a single book by ISBN13 accessible at `/api/books/[isbn13]`.
+    #
+    # + request - the inbound request
+    # + return - the HTTP response
     resource function delete books/[string isbn13](http:Request request) returns http:Response {
         io:println("DELETE book by ISBN13 " + isbn13);
 
@@ -102,5 +126,26 @@ class BookStore {
     function delete(string isbn13) returns boolean {
         Book|error? result = self.booksMap.removeIfHasKey(isbn13);
         return result is Book;
+    }
+}
+
+# A service implemented Microprofile Health endpoints
+service /q on new http:Listener(9091) {
+    isolated resource function get health() returns http:Response {
+        http:Response response = new;
+        response.setJsonPayload({"status": "UP", "checks": []});
+        return response;
+    }
+
+    isolated resource function get health/ready() returns http:Response {
+        http:Response response = new;
+        response.setJsonPayload({"status": "UP", "checks": []});
+        return response;
+    }
+
+    isolated resource function get health/live() returns http:Response {
+        http:Response response = new;
+        response.setJsonPayload({"status": "UP", "checks": []});
+        return response;
     }
 }
