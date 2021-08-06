@@ -1,0 +1,21 @@
+[container.image]
+name = "isolated-service"
+repository = "lreimer"
+tag = "1.0.0-ballerina"
+cmd = "CMD java -cp ${APP}:jars/* 'lreimer.isolated_service.1_0_0.$_init'"
+
+[cloud.deployment]
+external_accessible = true
+internal_domain_name = "isolated-service"
+
+[settings]
+singleYAML = true
+buildImage = true
+
+[cloud.deployment.probes.liveness]
+port = 9091
+path = "/q/health/live"
+
+[cloud.deployment.probes.readiness]
+port = 9091
+path = "/q/health/ready"

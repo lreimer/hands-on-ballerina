@@ -6,6 +6,19 @@ isolated BookStore store = new;
 
 # A service representing a network-accessible API
 # bound to absolute path `/api` and port `9090`.
+@http:ServiceConfig {
+    compression: {
+        enable: http:COMPRESSION_ALWAYS,
+        contentTypes: ["application/json"]
+    },
+    cors: {
+        allowOrigins: ["http://localhost:9090"],
+        allowCredentials: false,
+        allowHeaders: [],
+        exposeHeaders: [],
+        maxAge: 3600
+    }
+}
 service /api on new http:Listener(9090) {
 
     # API method to GET list of Books accessible at `/api/books`.
@@ -138,5 +151,26 @@ isolated class BookStore {
             result = self.booksMap.removeIfHasKey(isbn13);
         }
         return result is Book;
+    }
+}
+
+# A service implemented Microprofile Health endpoints
+service /q on new http:Listener(9091) {
+    isolated resource function get health() returns http:Response {
+        http:Response response = new;
+        response.setJsonPayload({ "status": "UP", "checks": []});
+        return response;
+    }
+
+    isolated resource function get health/ready() returns http:Response {
+        http:Response response = new;
+        response.setJsonPayload({ "status": "UP", "checks": []});
+        return response;
+    }
+    
+    isolated resource function get health/live() returns http:Response {
+        http:Response response = new;
+        response.setJsonPayload({ "status": "UP", "checks": []});
+        return response;
     }
 }
